@@ -1,8 +1,8 @@
-bin/
-obj/
+#bin/
+#obj/
 
-.vs/
-.vscode/
+#.vs/
+#.vscode/
 
-*.user
-*.suo
+#*.user
+#*.suo

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "SubmitRequest",
+    "scriptFile": "RequestSubmissionFunctionApp.dll",
+    "entryPoint": "RequestSubmissionFunctionApp.Functions.SubmitRequestFunction.Run",
+    "language": "dotnet-isolated",
+    "properties": {
+      "IsCodeless": false
+    },
+    "bindings": [
+      {
+        "name": "req",
+        "direction": "In",
+        "type": "httpTrigger",
+        "authLevel": "Anonymous",
+        "methods": [
+          "post"
+        ],
+        "route": "submit",
+        "properties": {}
+      },
+      {
+        "name": "$return",
+        "type": "http",
+        "direction": "Out"
+      }
+    ]
+  }
+]
