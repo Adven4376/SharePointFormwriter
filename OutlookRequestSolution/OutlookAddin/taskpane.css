@@ -1,0 +1,551 @@
+/* CSS Variables for design system tokens */
+:root {
+    --bg-app: hsl(224, 25%, 9%);
+    --bg-card: hsla(224, 25%, 14%, 0.7);
+    --bg-input: hsl(224, 25%, 7%);
+    --border-color: hsla(224, 20%, 22%, 0.5);
+    --border-focus: hsl(235, 85%, 65%);
+    
+    --text-primary: hsl(0, 0%, 98%);
+    --text-secondary: hsl(224, 15%, 65%);
+    --text-muted: hsl(224, 12%, 45%);
+    
+    --accent: hsl(235, 85%, 60%);
+    --accent-hover: hsl(235, 85%, 65%);
+    --accent-light: hsla(235, 85%, 60%, 0.15);
+    
+    --success: hsl(142, 70%, 45%);
+    --success-bg: hsla(142, 70%, 45%, 0.1);
+    --success-border: hsla(142, 70%, 45%, 0.25);
+    
+    --error: hsl(350, 75%, 50%);
+    --error-bg: hsla(350, 75%, 50%, 0.1);
+    --error-border: hsla(350, 75%, 50%, 0.25);
+    
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset and Global Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: hsla(224, 20%, 25%, 0.5);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: hsla(224, 20%, 35%, 0.7);
+}
+
+/* Layout Containers */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* Header Section */
+.app-header {
+    margin-bottom: 24px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), hsl(260, 85%, 60%));
+    border-radius: 8px;
+    box-shadow: 0 4px 12px hsla(235, 85%, 60%, 0.3);
+    position: relative;
+}
+
+.logo-icon::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+    border: 2px solid white;
+    border-radius: 3px;
+    transform: rotate(45deg);
+}
+
+.logo-text h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(to right, var(--text-primary), hsl(224, 20%, 85%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+}
+
+.logo-text p {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+/* Forms and Inputs */
+.app-main {
+    flex-grow: 1;
+}
+
+.submission-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.label-help {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+input[type="text"],
+input[type="email"],
+select,
+textarea {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* Custom styling for dropdown select */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(165, 178, 194)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 36px;
+}
+
+textarea {
+    resize: none;
+}
+
+/* Drag & Drop File Zone */
+.file-upload-zone {
+    border: 1.5px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: center;
+    background-color: hsla(224, 25%, 11%, 0.5);
+    cursor: pointer;
+    transition: border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+.file-upload-zone:hover, 
+.file-upload-zone.dragover {
+    border-color: var(--accent);
+    background-color: var(--accent-light);
+}
+
+.upload-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-icon {
+    width: 32px;
+    height: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(99, 102, 241)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'%3E%3C/path%3E%3Cpolyline points='17 8 12 3 7 8'%3E%3C/polyline%3E%3Cline x1='12' y1='3' x2='12' y2='15'%3E%3C/line%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.upload-prompt {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.browse-link {
+    color: var(--border-focus);
+    font-weight: 500;
+    text-decoration: underline;
+}
+
+/* File Attachment List */
+.file-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    list-style: none;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: hsla(224, 25%, 14%, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    animation: slideIn var(--transition-fast) forwards;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 80%;
+}
+
+.file-icon-badge {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--accent-light);
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--border-focus);
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.file-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.file-remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    transition: color var(--transition-fast);
+}
+
+.file-remove-btn:hover {
+    color: var(--error);
+}
+
+/* Submit Button */
+.submit-btn {
+    background: linear-gradient(135deg, var(--accent), hsl(245, 85%, 60%));
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px hsla(235, 85%, 60%, 0.25);
+    transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.submit-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 6px 18px hsla(235, 85%, 60%, 0.35);
+}
+
+.submit-btn:active {
+    transform: scale(0.98);
+}
+
+/* Overlays (Glassmorphism Modal Cards) */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: hsla(224, 25%, 5%, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    animation: fadeIn var(--transition-normal);
+}
+
+.glass {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+}
+
+.overlay-card {
+    border-radius: var(--radius-lg);
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: scaleUp var(--transition-normal);
+}
+
+/* Loading Overlay Styles */
+.spinner {
+    width: 44px;
+    height: 44px;
+    border: 3.5px solid var(--border-color);
+    border-top: 3.5px solid var(--border-focus);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.overlay-card h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.overlay-card p {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Success Card */
+.success-icon-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-color: var(--success-bg);
+    border: 1px solid var(--success-border);
+    color: var(--success);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px var(--success-bg);
+    animation: popCheck 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both;
+}
+
+.success-details {
+    width: 100%;
+    background-color: hsla(224, 25%, 11%, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    gap: 8px;
+}
+
+.detail-label {
+    color: var(--text-muted);
+    font-weight: 500;
+    min-width: 75px;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.detail-value a {
+    color: var(--border-focus);
+    text-decoration: underline;
+    font-family: inherit;
+}
+
+/* Error Card */
+.error-icon-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-color: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error);
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px var(--error-bg);
+}
+
+.error-content {
+    width: 100%;
+    max-height: 180px;
+    overflow-y: auto;
+    text-align: left;
+    background-color: hsla(224, 25%, 11%, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px;
+}
+
+.error-content ul {
+    list-style-type: none;
+    padding-left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.error-content li {
+    color: var(--text-primary);
+    font-size: 12px;
+    position: relative;
+    padding-left: 14px;
+}
+
+.error-content li::before {
+    content: "•";
+    color: var(--error);
+    position: absolute;
+    left: 0;
+    font-size: 14px;
+}
+
+/* Modal Actions */
+.action-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.action-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.error-btn {
+    background-color: hsla(350, 75%, 20%, 0.4);
+    border: 1px solid var(--error-border);
+    color: var(--text-primary);
+}
+
+.error-btn:hover {
+    background-color: hsla(350, 75%, 30%, 0.6);
+}
+
+/* Keyframes and Animations */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(6px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes popCheck {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

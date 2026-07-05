@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp 
+  xmlns="http://schemas.microsoft.com/office/appshere/manifest/1.1" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" 
+  xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" 
+  xsi:type="MailApp">
+  
+  <Id>2b64d1f2-cce7-44a6-9c4c-3ff94db181c0</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Enterprise Solutions</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  
+  <DisplayName DefaultValue="Enterprise Submit Hub"/>
+  <Description DefaultValue="Allows secure submission of requests and attachments directly into SharePoint."/>
+  
+  <!-- Icon sizes required for manifest verification -->
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+  
+  <SupportUrl DefaultValue="https://www.enterprise.com/support"/>
+  
+  <!-- App domains list to allow cross-origin requests from the pane -->
+  <AppDomains>
+    <AppDomain>http://localhost:7071</AppDomain>
+    <AppDomain>https://localhost:7071</AppDomain>
+  </AppDomains>
+  
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+  
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+  
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemSend">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  
+  <Permissions>ReadWriteItem</Permissions>
+  
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message"/>
+    <Rule xsi:type="ItemIs" ItemType="Appointment"/>
+  </Rule>
+  
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+  <!-- Version Overrides for modern Outlook environments -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="VersionOverridesV1_0">
+    <Description DefaultValue="Allows secure submission of requests and attachments directly into SharePoint."/>
+    
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.3">
+        <bt:Set Name="Mailbox"/>
+      </bt:Sets>
+    </Requirements>
+    
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <FunctionFile Resid="functionFileUrl"/>
+          
+          <!-- Ribbon Extension -->
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="groupSubmit">
+                <Label Resid="groupLabel"/>
+                <!-- Button Control to trigger Task Pane -->
+                <Control xsi:type="Button" id="btnSubmitPane">
+                  <Label Resid="btnLabel"/>
+                  <Supertip>
+                    <Title Resid="btnSuperTitle"/>
+                    <Description Resid="btnSuperDesc"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" Resid="icon16"/>
+                    <bt:Image size="32" Resid="icon32"/>
+                    <bt:Image size="80" Resid="icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation Resid="taskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
+        <bt:Image id="icon32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+        <bt:Image id="icon80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+      </bt:Images>
+      
+      <bt:Urls>
+        <bt:Url id="functionFileUrl" DefaultValue="https://localhost:3000/function-file.html"/>
+        <bt:Url id="taskpaneUrl" DefaultValue="https://localhost:3000/taskpane.html"/>
+      </bt:Urls>
+      
+      <bt:ShortStrings>
+        <bt:String id="groupLabel" DefaultValue="SharePoint Submissions"/>
+        <bt:String id="btnLabel" DefaultValue="Submit Request"/>
+        <bt:String id="btnSuperTitle" DefaultValue="Open Submission Panel"/>
+      </bt:ShortStrings>
+      
+      <bt:LongStrings>
+        <bt:String id="btnSuperDesc" DefaultValue="Opens a secure task pane to fill details and upload attachments to SharePoint."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Request Submission</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Modern Styling -->
+    <link rel="stylesheet" href="taskpane.css">
+    <!-- Office.js CDN -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+    <!-- Local Mock fallback for development -->
+    <script src="office.js" type="text/javascript"></script>
+</head>
+<body class="theme-dark">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-container">
+                <div class="logo-icon"></div>
+                <div class="logo-text">
+                    <h1>Enterprise Hub</h1>
+                    <p>SharePoint Submission</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Form Content -->
+        <main class="app-main">
+            <form id="submissionForm" class="submission-form" novalidate>
+                <!-- Name -->
+                <div class="form-group">
+                    <label for="inputName">Full Name</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="inputName" placeholder="Enter your full name" required>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="inputEmail">Email Address</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="inputEmail" placeholder="name@company.com" required>
+                    </div>
+                </div>
+
+                <!-- Department -->
+                <div class="form-group">
+                    <label for="selectDepartment">Department</label>
+                    <div class="input-wrapper">
+                        <select id="selectDepartment" required>
+                            <option value="" disabled selected>Select your department</option>
+                            <option value="Human Resources">Human Resources</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Legal">Legal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="textareaDescription">Description</label>
+                    <div class="input-wrapper">
+                        <textarea id="textareaDescription" rows="4" placeholder="Describe your request in detail..." required></textarea>
+                    </div>
+                </div>
+
+                <!-- Attachments Section -->
+                <div class="form-group">
+                    <label>Attachments <span class="label-help">(Max 5 files, 10MB each)</span></label>
+                    <div class="file-upload-zone" id="fileUploadZone">
+                        <input type="file" id="fileInput" multiple style="display: none;">
+                        <div class="upload-zone-content">
+                            <div class="upload-icon"></div>
+                            <p class="upload-prompt">Drag & drop files or <span class="browse-link">browse</span></p>
+                        </div>
+                    </div>
+                    <!-- Selected Files List -->
+                    <ul class="file-list" id="fileList"></ul>
+                </div>
+
+                <!-- Action Button -->
+                <button type="submit" class="submit-btn" id="submitButton">
+                    <span class="btn-text">Submit Request</span>
+                </button>
+            </form>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="overlay" id="loadingOverlay" style="display: none;">
+            <div class="overlay-card glass">
+                <div class="spinner"></div>
+                <h2>Processing Submission</h2>
+                <p>Uploading attachments and registering in SharePoint...</p>
+            </div>
+        </div>
+
+        <!-- Success Dialog Overlay -->
+        <div class="overlay" id="successOverlay" style="display: none;">
+            <div class="overlay-card glass success-card">
+                <div class="success-icon-badge">✓</div>
+                <h2>Submission Successful!</h2>
+                <p id="successMessage">Your request has been successfully recorded.</p>
+                <div class="success-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Tracking ID:</span>
+                        <span class="detail-value" id="valTrackingId">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">SharePoint:</span>
+                        <span class="detail-value"><a href="#" id="linkFolder" target="_blank">Open Attachments Folder</a></span>
+                    </div>
+                </div>
+                <button class="action-btn" id="successCloseBtn">Submit Another</button>
+            </div>
+        </div>
+
+        <!-- Error Dialog Overlay -->
+        <div class="overlay" id="errorOverlay" style="display: none;">
+            <div class="overlay-card glass error-card">
+                <div class="error-icon-badge">✗</div>
+                <h2>Submission Failed</h2>
+                <div class="error-content">
+                    <ul id="errorList"></ul>
+                </div>
+                <button class="action-btn error-btn" id="errorCloseBtn">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend logic scripts -->
+    <script src="utils/validation.js"></script>
+    <script src="services/api.service.js"></script>
+    <script src="taskpane.js"></script>
+</body>
+</html>
