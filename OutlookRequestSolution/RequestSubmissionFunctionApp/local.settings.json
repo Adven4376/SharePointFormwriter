@@ -1,0 +1,26 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    
+    "SharePoint__TenantId": "your-tenant-id",
+    "SharePoint__ClientId": "your-client-id",
+    "SharePoint__ClientSecret": "your-client-secret-only-for-local",
+    "SharePoint__SiteId": "your-sharepoint-site-id",
+    "SharePoint__LibraryId": "your-document-library-id-or-name",
+    "SharePoint__ListId": "your-sharepoint-list-id-or-name",
+    "SharePoint__RequestAttachmentsFolder": "RequestAttachments",
+    
+    "Application__FolderPrefix": "Request_",
+    "Application__MaximumFileSize": "10485760",
+    
+    "LibraryName": "RequestAttachments",
+    "FunctionKey": "your-function-key-if-needed"
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*",
+    "CORSCredentials": false
+  }
+}

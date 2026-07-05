@@ -20,7 +20,7 @@ namespace RequestSubmissionFunctionApp.Utilities
         /// <param name="contentType">The raw Content-Type header containing the boundary.</param>
         /// <returns>A populated SubmissionRequestDto.</returns>
         /// <exception cref="ArgumentException">Thrown when the content type or boundary is invalid.</exception>
-        public static async Task<SubmissionRequestDto> ParseAsync(Stream body, string contentType)
+        public static async Task<SubmissionRequestDto> ParseAsync(Stream body, string contentType, long maxFileSize = 10485760)
         {
             var requestDto = new SubmissionRequestDto();
 
@@ -54,9 +54,22 @@ namespace RequestSubmissionFunctionApp.Utilities
                     {
                         var fileName = HeaderUtilities.RemoveQuotes(contentDisposition.FileName).Value?.ToString() ?? string.Empty;
                         
-                        // Copy to MemoryStream since the section stream is transient
+                        // Copy to MemoryStream incrementally and check file size to prevent OOM attacks
                         var memoryStream = new MemoryStream();
-                        await section.Body.CopyToAsync(memoryStream);
+                        var buffer = new byte[81920]; // 80KB buffer size
+                        int bytesRead;
+                        long totalBytesRead = 0;
+
+                        while ((bytesRead = await section.Body.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            totalBytesRead += bytesRead;
+                            if (totalBytesRead > maxFileSize)
+                            {
+                                throw new ArgumentException($"Attachment '{fileName}' exceeds the maximum allowed size limit of {maxFileSize / (1024.0 * 1024.0):F1}MB.");
+                            }
+                            await memoryStream.WriteAsync(buffer, 0, bytesRead);
+                        }
+
                         memoryStream.Position = 0;
 
                         // Create our custom FormFile instance

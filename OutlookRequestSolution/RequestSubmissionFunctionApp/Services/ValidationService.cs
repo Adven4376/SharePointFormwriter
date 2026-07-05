@@ -125,11 +125,19 @@ namespace RequestSubmissionFunctionApp.Services
                 errors.Add($"Maximum allowed attachments is {maxAttachmentCount}. Your request has {attachments.Count}.");
             }
 
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var attachment in attachments)
             {
                 if (string.IsNullOrWhiteSpace(attachment.FileName))
                 {
                     errors.Add("Attachment name cannot be empty.");
+                    continue;
+                }
+
+                if (!seenNames.Add(attachment.FileName))
+                {
+                    errors.Add($"Duplicate attachment name found: '{attachment.FileName}'. Each attachment must have a unique file name.");
                     continue;
                 }
 

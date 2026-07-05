@@ -23,6 +23,7 @@ namespace RequestSubmissionFunctionApp.Services
         private readonly GraphServiceClient _graphServiceClient;
         private readonly SharePointSettings _settings;
         private readonly ILogger<SharePointDocumentService> _logger;
+        private static string? _resolvedDriveId;
 
         public SharePointDocumentService(
             GraphServiceClient graphServiceClient,
@@ -289,6 +290,12 @@ namespace RequestSubmissionFunctionApp.Services
                 throw new ArgumentException("SharePoint LibraryId is not configured.");
             }
 
+            // Return cached drive if already resolved to save a network roundtrip
+            if (!string.IsNullOrEmpty(_resolvedDriveId))
+            {
+                return new Drive { Id = _resolvedDriveId };
+            }
+
             var drivesCollection = await _graphServiceClient.Sites[_settings.SiteId].Drives.GetAsync();
             if (drivesCollection?.Value == null)
             {
@@ -304,6 +311,7 @@ namespace RequestSubmissionFunctionApp.Services
                 throw new DirectoryNotFoundException($"SharePoint Document Library '{_settings.LibraryId}' not found.");
             }
 
+            _resolvedDriveId = drive.Id;
             return drive;
         }
 

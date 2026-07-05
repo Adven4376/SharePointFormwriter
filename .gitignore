@@ -4,7 +4,5 @@ obj/
 .vs/
 .vscode/
 
-local.settings.json
-
 *.user
 *.suo

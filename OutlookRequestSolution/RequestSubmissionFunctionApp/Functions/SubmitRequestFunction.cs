@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using RequestSubmissionFunctionApp.Configuration;
 using RequestSubmissionFunctionApp.DTOs;
 using RequestSubmissionFunctionApp.Interfaces;
 using RequestSubmissionFunctionApp.Utilities;
@@ -18,6 +19,7 @@ namespace RequestSubmissionFunctionApp.Functions
     public class SubmitRequestFunction
     {
         private readonly ISubmissionService _submissionService;
+        private readonly ApplicationSettings _appSettings;
         private readonly ILogger<SubmitRequestFunction> _logger;
 
         /// <summary>
@@ -25,9 +27,11 @@ namespace RequestSubmissionFunctionApp.Functions
         /// </summary>
         public SubmitRequestFunction(
             ISubmissionService submissionService,
+            ApplicationSettings appSettings,
             ILogger<SubmitRequestFunction> logger)
         {
             _submissionService = submissionService ?? throw new ArgumentNullException(nameof(submissionService));
+            _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -62,9 +66,9 @@ namespace RequestSubmissionFunctionApp.Functions
 
             try
             {
-                // 2. Parse request multipart stream using the utility parser
+                // 2. Parse request multipart stream using the utility parser with configured size limits
                 _logger.LogInformation("Parsing multipart request body stream...");
-                SubmissionRequestDto requestDto = await MultipartParser.ParseAsync(req.Body, contentType);
+                SubmissionRequestDto requestDto = await MultipartParser.ParseAsync(req.Body, contentType, _appSettings.MaximumFileSize);
 
                 // 3. Delegate execution to workflow SubmissionService
                 SubmissionResponseDto responseDto = await _submissionService.ProcessSubmission(requestDto);
