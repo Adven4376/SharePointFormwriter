@@ -1,12 +1,12 @@
 # Architectural & Workflow Guide: Outlook Request Submission System
 
-This guide explains the entire system design, technology stack, security/authentication mechanisms, and step-by-step execution flow of the Request Submission application. It is written to be accessible to a layperson while retaining the technical depth required for developers.
+This guide explains the entire system design, technology stack, security/authentication mechanisms, and step-by-step execution flow of the Request Submission application. It includes visible code snippets, file links, and detailed explanations of the logic behind each phase.
 
 ---
 
 ## 🌟 Section 1: Plain English Overview (How It Works)
 
-Imagine a user working in Microsoft Outlook who wants to submit a support request or project files to the company's SharePoint site. 
+Imagine a user working in Microsoft Outlook who wants to submit a support request or project files to the company's SharePoint site.
 
 ```text
 [ Outlook User Interface ] 
@@ -29,244 +29,319 @@ Imagine a user working in Microsoft Outlook who wants to submit a support reques
 
 ---
 
-## 🛠️ Section 2: Technical Architecture & Core Technologies
+## ⚙️ Section 2: Core Configuration & Secret Keys
 
-The system is split into a client-side frontend and a server-side serverless backend:
+To run the application, several key identifiers must be declared. These establish the credentials and locations of resources inside Microsoft 365.
 
-| Layer | Component / Technology | Responsibility |
-| :--- | :--- | :--- |
-| **Frontend** | Office.js, HTML5, Vanilla CSS, JS | Renders the task pane in Outlook, collects form inputs/files, and dispatches HTTP requests. |
-| **Backend** | Azure Functions (.NET 8 Isolated Worker) | Host environment that exposes APIs and handles backend triggers. |
-| **Auth** | Azure.Identity / MS Entra ID | Authenticates the backend to call Office 365 services securely. |
-| **Graph API** | Microsoft Graph SDK v5 | SDK used to interface with SharePoint Libraries and Lists. |
-| **Storage** | SharePoint Online | Houses the uploaded files (Drive/Library) and metadata records (List). |
-
-### Data Transmission Specs:
-*   **HTTP Method**: `POST`
-*   **Endpoint**: `/api/submit` (running on `http://localhost:7071` locally).
-*   **Content-Type**: `multipart/form-data; boundary=----WebKitFormBoundary...`
-    *   *Why?* Standard JSON requests cannot easily transmit raw binary files alongside structured text fields. Using `multipart/form-data` allows files and text strings to be split into "parts" separated by a boundary string in a single request body.
-
----
-
-## 📂 Section 3: Detailed File-by-File Explorer
-
-Here is a map of the repository's files, explaining why each exists, what logic is inside it, and how they connect:
-
-### 1. The Frontend (OutlookAddin)
-*   **[manifest.xml](file:///e:/aditya/azure/OutlookRequestSolution/OutlookAddin/manifest.xml)**:
-    *   *Why*: The configuration file that registers the add-in with Microsoft Outlook.
-    *   *Logic*: Defines the add-in's ID, icons, permissions, URLs (e.g. `taskpane.html`), and trust domains (CORS rules).
-*   **[taskpane.html](file:///e:/aditya/azure/OutlookRequestSolution/OutlookAddin/taskpane.html)**:
-    *   *Why*: The visual layout (HTML structure) of the form.
-*   **[taskpane.js](file:///e:/aditya/azure/OutlookRequestSolution/OutlookAddin/taskpane.js)**:
-    *   *Why*: The controller of the user interface.
-    *   *Logic*: Collects user inputs, validates them on the client side, manages UI loading states, and updates progress notifications.
-*   **[api.service.js](file:///e:/aditya/azure/OutlookRequestSolution/OutlookAddin/services/api.service.js)**:
-    *   *Why*: Communicates with the backend.
-    *   *Logic*: Construct a native `FormData` object, appends text fields and files, and initiates the async browser `fetch()` POST request.
-
-### 2. The Backend Entry & Configurations (RequestSubmissionFunctionApp)
-*   **[Program.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Program.cs)**:
-    *   *Why*: Entry point of the serverless app.
-    *   *Logic*: Initializes the host, reads environment variables, registers services via Dependency Injection (DI), and instantiates the Microsoft Graph API client (`GraphServiceClient`).
-*   **[local.settings.json](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/local.settings.json)**:
-    *   *Why*: Local settings configuration.
-    *   *Logic*: Holds local credentials (TenantId, ClientId, ClientSecret), SharePoint site IDs, and local Host rules (like locking port `7071` and enabling CORS `*`).
-*   **[host.json](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/host.json)**:
-    *   *Why*: Global Azure Functions runtime configuration.
-    *   *Logic*: Configures retry attempts (3 retries on failure), timeouts (10 minutes max execution time), and route prefixes.
-*   **[SharePointSettings.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Configuration/SharePointSettings.cs)** & **[ApplicationSettings.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Configuration/ApplicationSettings.cs)**:
-    *   *Why*: Strongly-typed models of configuration files.
-    *   *Logic*: Binds JSON settings directly into C# classes for type safety and easy injection.
-
-### 3. The Function & Parser Utilities
-*   **[SubmitRequestFunction.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Functions/SubmitRequestFunction.cs)**:
-    *   *Why*: The API endpoint gateway.
-    *   *Logic*: Receives HTTP requests on route `/api/submit`. It parses the stream using `MultipartParser` and forwards it to the orchestrator service.
-*   **[MultipartParser.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Utilities/MultipartParser.cs)**:
-    *   *Why*: Custon stream parser.
-    *   *Logic*: Reads the raw HTTP input stream. It streams attachments in 80KB chunks, checks size limits on the fly to prevent server crashes, and reconstructs files into `FormFile` objects.
-
-### 4. Core Core Business Logic Services
-*   **[SubmissionService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SubmissionService.cs)**:
-    *   *Why*: The orchestrator of the entire process.
-    *   *Logic*: Coordinates the sequence of validation $\rightarrow$ GUID generation $\rightarrow$ SharePoint folder creation $\rightarrow$ file uploads $\rightarrow$ SharePoint list item creation. Also triggers folder deletion if any step crashes (rollback).
-*   **[ValidationService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/ValidationService.cs)**:
-    *   *Why*: Security validator.
-    *   *Logic*: Sanitizes data fields, checks for duplicate attachment file names, validates sizes, and enforces allowed file extensions (e.g. `.pdf`, `.docx`).
-*   **[SharePointDocumentService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SharePointDocumentService.cs)**:
-    *   *Why*: Interfaces with SharePoint Document Libraries.
-    *   *Logic*: Uses Graph API to create folders, start chunked upload sessions (`LargeFileUploadTask`) for large files, and perform deletes. Includes a cache parameter to avoid repeatedly querying SharePoint for Document library GUIDs.
-*   **[SharePointListService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SharePointListService.cs)**:
-    *   *Why*: Interfaces with SharePoint Lists.
-    *   *Logic*: Stores metadata fields (Name, Email, etc.) along with the attachment folder URL.
-
----
-
-## 🔗 Section 4: Tracing the Code (The Attachment & Metadata Pipeline)
-
-Here is a step-by-step walkthrough of how a request moves through the backend code:
-
-```mermaid
-sequenceDiagram
-    participant Function as SubmitRequestFunction
-    participant Parser as MultipartParser
-    participant Orchestrator as SubmissionService
-    participant DocService as SharePointDocumentService
-    participant ListService as SharePointListService
-
-    Function->>Parser: ParseAsync(req.Body, contentType)
-    Note over Parser: Reads body stream in 80KB chunks.<br/>Throws if size > Limit.
-    Parser-->>Function: SubmissionRequestDto
-    Function->>Orchestrator: ProcessSubmission(requestDto)
-    Note over Orchestrator: Generates SubmissionId GUID
-    Orchestrator->>DocService: CreateSubmissionFolder(Guid)
-    Note over DocService: SiteId & LibraryId Cache Lookups.<br/>API: POST /drive/root/children
-    DocService-->>Orchestrator: Folder WebUrl
-    Orchestrator->>DocService: UploadMultipleFiles(Guid, Attachments)
-    Note over DocService: Uses LargeFileUploadTask chunks
-    DocService-->>Orchestrator: List of FileUrls
-    Orchestrator->>ListService: CreateSubmissionItem(Guid, requestDto, FolderUrl)
-    Note over ListService: API: POST /sites/{SiteId}/lists/{ListId}/items
-    ListService-->>Orchestrator: List Item ID
-    Orchestrator-->>Function: Success ResponseDto
-```
-
-### The Code Logic Behind the Data Steps:
-
-#### Step A: Generate GUID & Create Folder
-Inside `SubmissionService.cs`, a GUID is generated to serve as the unique folder name:
-```csharp
-var submissionId = Guid.NewGuid(); // e.g., 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
-folderUrl = await _documentService.CreateSubmissionFolder(submissionId);
-```
-Inside `SharePointDocumentService.cs`, this creates a folder inside the root document library:
-```csharp
-var newFolder = new DriveItem
-{
-    Name = submissionId.ToString(),
-    Folder = new Folder()
-};
-var createdFolder = await _graphServiceClient.Drives[drive.Id]
-    .Root
-    .ItemWithPath("RequestAttachments")
-    .Children
-    .PostAsync(newFolder);
-```
-
-#### Step B: Chunks Upload Session
-For each file, an upload session is created in SharePoint. This allows uploading large files in sequential parts:
-```csharp
-var uploadSession = await _graphServiceClient.Drives[drive.Id]
-    .Items[folderItem.Id]
-    .ItemWithPath(file.FileName)
-    .CreateUploadSession
-    .PostAsync(uploadSessionRequestBody);
-
-var fileUploadTask = new LargeFileUploadTask<DriveItem>(
-    uploadSession,
-    stream,
-    maxSliceSize, // 320 KB slices
-    _graphServiceClient.RequestAdapter
-);
-var uploadResult = await fileUploadTask.UploadAsync();
-```
-
-#### Step C: Creating the SharePoint List Metadata Record
-After uploading files, the folder link is passed to `SharePointListService.cs` to write metadata:
-```csharp
-var listItem = new ListItem
-{
-    Fields = new FieldValueSet
+### 1. Where Configuration Keys are Declared
+*   **Locally**: Configured inside **[local.settings.json](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/local.settings.json)**:
+    ```json
     {
-        AdditionalData = new Dictionary<string, object>
-        {
-            { "Title", submissionId.ToString() },
-            { "SubmissionId", submissionId.ToString() },
-            { "Name", request.Name },
-            { "Email", request.Email },
-            { "Department", request.Department },
-            { "Description", request.Description },
-            { "FolderURL", folderUrl }
-        }
+      "IsEncrypted": false,
+      "Values": {
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "SharePoint__TenantId": "your-tenant-id",
+        "SharePoint__ClientId": "your-client-id",
+        "SharePoint__ClientSecret": "your-client-secret-only-for-local",
+        "SharePoint__SiteId": "your-sharepoint-site-id",
+        "SharePoint__LibraryId": "your-document-library-id-or-name",
+        "SharePoint__ListId": "your-sharepoint-list-id-or-name",
+        "SharePoint__RequestAttachmentsFolder": "RequestAttachments"
+      }
     }
-};
-await _graphServiceClient.Sites[SiteId].Lists[ListId].Items.PostAsync(listItem);
-```
+    ```
+*   **In Production (Azure)**: Configured as Environment Variables in the Azure Function App's Application Settings.
+
+### 2. Purpose of the Key Identifiers
+*   **TenantId**: Identifies your company's unique Microsoft 365 cloud instance. It acts as the home directory of your accounts.
+*   **ClientId**: The unique Application ID of your registered app in Microsoft Entra ID. It tells Microsoft *which* program is requesting access.
+*   **ClientSecret**: The password for your Application. It verifies that your program is legitimate and authorized to request data.
+*   **SiteId**: The unique ID of your SharePoint Site. It tells the SDK *which* site collection to target.
+*   **LibraryId**: The identifier of the document library (drive) hosting attachments.
+*   **ListId**: The identifier of the SharePoint List storing user requests metadata.
 
 ---
 
-## 🔑 Section 5: Authentication, Graph API & Secret Key Access
+## 🔑 Section 3: Microsoft Graph API & The Singleton Client
 
-To access SharePoint resources securely, the backend must authenticate with Microsoft Entra ID.
+The **Microsoft Graph API** is the unified endpoint to interact with SharePoint, Outlook, and Microsoft 365 data. 
 
-```text
-[ Azure Function ] ──(Presents ClientId + ClientSecret)──► [ Entra ID Token Endpoint ]
-        ▲                                                             │
-        │                                                             ▼
-  (Access Granted)                                            (Issues Access Token)
-        │                                                             │
-        └─────── [ Microsoft Graph API ] ◄──(Presents Token)──────────┘
-```
+### 1. Token Acquisition Flow
+To connect to SharePoint, the Azure Function App must acquire an Access Token from Microsoft Entra ID.
+1. The Function presents its `ClientId`, `TenantId`, and `ClientSecret` to the Entra ID authorization server.
+2. Entra ID validates the client secret and generates a cryptographically signed OAuth JSON Web Token (JWT).
+3. The Function app appends this token as a Bearer string in the headers of all subsequent Graph API HTTP requests.
 
-### 1. How Authentication is Setup in Code
-In `Program.cs`, the `GraphServiceClient` is instantiated using a credential wrapper:
+### 2. Graph Client Singleton Registration in [Program.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Program.cs)
+Rather than instantiating the credentials client and HTTP adapter on every incoming request, the client is registered as a **Singleton** (single instance shared across the entire application lifecycle). This prevents socket exhaustion and boosts performance.
+
 ```csharp
+// Register GraphServiceClient with secure Authentication
 services.AddSingleton<GraphServiceClient>(sp =>
 {
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    
+    // Read authentication parameters from settings
     string tenantId = sharePointSettings.TenantId;
     string clientId = sharePointSettings.ClientId;
     string clientSecret = sharePointSettings.ClientSecret;
+    string keyVaultUrl = configuration["AzureAd__KeyVaultUrl"] ?? string.Empty;
 
-    // Standard client credentials flow
-    var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-    return new GraphServiceClient(credential);
+    // Secure fallback: Retrieve secret from Key Vault if missing locally
+    if (string.IsNullOrEmpty(clientSecret) && !string.IsNullOrEmpty(keyVaultUrl))
+    {
+        try
+        {
+            logger.LogInformation("Retrieving SharePoint Client Secret from Azure Key Vault: {VaultUrl}", keyVaultUrl);
+            var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+            KeyVaultSecret secret = secretClient.GetSecret("SharePoint--ClientSecret");
+            clientSecret = secret.Value;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to retrieve Client Secret from Azure Key Vault.");
+        }
+    }
+
+    // Initialize using Client Secret Credentials if keys are present
+    if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret))
+    {
+        logger.LogInformation("Initializing GraphServiceClient using ClientSecretCredential.");
+        var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+        return new GraphServiceClient(credential);
+    }
+    else
+    {
+        logger.LogInformation("Initializing GraphServiceClient using DefaultAzureCredential (e.g. Managed Identity).");
+        var credential = new DefaultAzureCredential();
+        return new GraphServiceClient(credential);
+    }
 });
 ```
 
-### 2. Client Secret Management (Now vs. Future)
+---
 
-#### Currently (Local Development)
-The client secret is stored locally inside the `"SharePoint__ClientSecret"` field in `local.settings.json`. The host reads this value as an environment variable and binds it directly to the authentication credential.
-> [!WARNING]
-> Never check `local.settings.json` into source control. It is gitignored to prevent credential leaks.
+## ⚡ Section 4: The Client-Side HTTP Trigger (Frontend to Backend)
 
-#### Future (Production in Azure with Azure Key Vault)
-To transition to production, the `ClientSecret` parameter is omitted from local configuration. Instead, it is retrieved securely from Azure Key Vault at runtime.
+Here is how data is packaged in the frontend and captured by the backend Function.
 
-*   **Setup changes in Azure Portal**:
-    1. Deploy an **Azure Key Vault**.
-    2. Add a new secret named `SharePoint--ClientSecret` and paste your Entra ID App registration secret value.
-    3. Turn on **System-assigned Managed Identity** on your Azure Function App.
-    4. Set an **Access Policy** in Key Vault granting your Function App's identity `Get` permissions for Secrets.
-    5. In the Function App configurations, add a setting named `AzureAd__KeyVaultUrl` pointing to your Key Vault URL (e.g. `https://your-vault.vault.azure.net/`).
+### 1. Frontend: Dispatching the Request in [api.service.js](file:///e:/aditya/azure/OutlookRequestSolution/OutlookAddin/services/api.service.js)
+The frontend client uses standard HTML5 `FormData` to bundle form variables and multiple binary file objects:
 
-*   **Logic in code that supports this transition (`Program.cs`)**:
-    ```csharp
-    string keyVaultUrl = configuration["AzureAd__KeyVaultUrl"] ?? string.Empty;
+```javascript
+const apiService = {
+    apiEndpoint: 'http://localhost:7071/api/submit',
 
-    if (string.IsNullOrEmpty(clientSecret) && !string.IsNullOrEmpty(keyVaultUrl))
-    {
-        // Fetch client secret from Key Vault using Managed Identity
-        var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
-        KeyVaultSecret secret = secretClient.GetSecret("SharePoint--ClientSecret");
-        clientSecret = secret.Value; // Replaces the empty local secret
+    async submitRequest(fields, files) {
+        const formData = new FormData();
+
+        // 1. Append text fields
+        formData.append('Name', fields.name.trim());
+        formData.append('Email', fields.email.trim());
+        formData.append('Department', fields.department.trim());
+        formData.append('Description', fields.description.trim());
+
+        // 2. Append attachment files
+        if (files && files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                formData.append('Attachments', files[i], files[i].name);
+            }
+        }
+
+        // 3. Make HTTP POST Request
+        const response = await fetch(this.apiEndpoint, {
+            method: 'POST',
+            body: formData // Content-Type: multipart/form-data with boundary
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Request failed');
+        }
+        return result;
     }
-    ```
+};
+```
+
+### 2. Backend: Capturing the HTTP POST in [SubmitRequestFunction.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Functions/SubmitRequestFunction.cs)
+The backend Azure Function captures this payload using an `HttpTrigger`:
+
+```csharp
+[Function("SubmitRequest")]
+public async Task<HttpResponseData> Run(
+    [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "submit")] HttpRequestData req)
+{
+    _logger.LogInformation("HTTP Trigger 'SubmitRequest' received a request.");
+
+    // Validate Content-Type
+    if (!req.Headers.TryGetValues("Content-Type", out var contentTypeHeaders))
+    {
+        var errorResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+        await errorResponse.WriteAsJsonAsync(new { Error = "Content-Type header is required." });
+        return errorResponse;
+    }
+
+    var contentType = contentTypeHeaders.FirstOrDefault() ?? string.Empty;
+    if (!contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
+    {
+        var errorResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+        await errorResponse.WriteAsJsonAsync(new { Error = "Content-Type must be multipart/form-data." });
+        return errorResponse;
+    }
+
+    try
+    {
+        // Parse request stream with security size limit check
+        SubmissionRequestDto requestDto = await MultipartParser.ParseAsync(req.Body, contentType, _appSettings.MaximumFileSize);
+
+        // Orchestrate submission flow
+        SubmissionResponseDto responseDto = await _submissionService.ProcessSubmission(requestDto);
+
+        var httpStatusCode = responseDto.Success ? HttpStatusCode.OK : HttpStatusCode.BadRequest;
+        var response = req.CreateResponse(httpStatusCode);
+        await response.WriteAsJsonAsync(responseDto);
+        return response;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Unexpected error occurred during execution.");
+        var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+        await errorResponse.WriteAsJsonAsync(new { Error = "An unexpected error occurred." });
+        return errorResponse;
+    }
+}
+```
 
 ---
 
-## ⚠️ Section 6: Key Optimizations & System Gaps Resolved
+## 📂 Section 5: The File Storage Pipeline (SharePoint Library)
 
-We identified and patched three critical design bugs during code review to make the backend fully production-ready:
+The orchestrator service generates a `Guid` which acts as the target folder name inside the Document Library.
 
-1.  **Resolved: Redundant API Requests (Performance Gap)**
-    *   *Problem*: The backend listed all document libraries on every single file upload request.
-    *   *Resolution*: Added process-level caching for the SharePoint Drive ID in `SharePointDocumentService`. The lookup is now performed once and reused, doubling api response speeds.
-2.  **Resolved: Memory Exhaustion Vulnerability (Stability Gap)**
-    *   *Problem*: Standard multipart parsing loaded the entire file upload stream into RAM. A malicious actor uploading extremely large files could exceed memory allocation, crashing the function instance.
-    *   *Resolution*: Implemented dynamic, chunked stream parsing in `MultipartParser`. The stream is copied in small 80KB blocks and verified iteratively. If the stream exceeds the size limit, it is aborted immediately without reserving further memory.
-3.  **Resolved: File Name Overwriting (Data Integrity Gap)**
-    *   *Problem*: Uploading files using original names with `replace` mode meant duplicate names in a single submission (e.g. two files named `receipt.jpg`) would overwrite each other.
-    *   *Resolution*: Implemented a duplicate detection checker in `ValidationService` that enforces unique attachment filenames in each request.
+### 1. Orchestrating Folder Creation in [SubmissionService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SubmissionService.cs)
+```csharp
+// Generates unique GUID tracking ID
+var submissionId = Guid.NewGuid(); // e.g. 5d5a7d8e-c90a-41e9-9a2c-d6a5d4f3b2c1
+
+// Create the target folder in SharePoint Document Library
+string folderUrl = await _documentService.CreateSubmissionFolder(submissionId);
+
+// Upload each binary attachment
+if (request.Attachments != null && request.Attachments.Count > 0)
+{
+    fileUploadResults = await _documentService.UploadMultipleFiles(submissionId, request.Attachments);
+}
+```
+
+### 2. Creating the Folder in [SharePointDocumentService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SharePointDocumentService.cs)
+The Document Service resolves the parent library and posts a new `DriveItem` folder structure:
+
+```csharp
+public async Task<string> CreateSubmissionFolder(Guid submissionId)
+{
+    var drive = await GetDriveAsync(); // Uses memory caching to prevent listing drives repeatedly
+    var submissionFolderName = submissionId.ToString();
+
+    var newFolder = new DriveItem
+    {
+        Name = submissionFolderName,
+        Folder = new Folder(),
+        AdditionalData = new Dictionary<string, object>
+        {
+            { "@microsoft.graph.conflictBehavior", "replace" }
+        }
+    };
+
+    // Post to Microsoft Graph API
+    var createdFolder = await _graphServiceClient.Drives[drive.Id]
+        .Root
+        .ItemWithPath(_settings.RequestAttachmentsFolder)
+        .Children
+        .PostAsync(newFolder);
+
+    return createdFolder.WebUrl; // Returns the direct SharePoint Web URL to the folder
+}
+```
+
+---
+
+## 📋 Section 6: The Metadata & Link Storage (SharePoint List)
+
+Once the files are successfully uploaded, we save the user's form details alongside the generated folder web link (`folderUrl`) to the SharePoint List. 
+
+### 1. Creating the List Item in [SharePointListService.cs](file:///e:/aditya/azure/OutlookRequestSolution/RequestSubmissionFunctionApp/Services/SharePointListService.cs)
+The backend issues a POST request to Graph API list items:
+
+```csharp
+public async Task<string> CreateSubmissionItem(Guid submissionId, SubmissionRequestDto request, string folderUrl)
+{
+    var listItem = new ListItem
+    {
+        Fields = new FieldValueSet
+        {
+            AdditionalData = new Dictionary<string, object>
+            {
+                { "Title", submissionId.ToString() }, // Standard identifier field
+                { "SubmissionId", submissionId.ToString() },
+                { "Name", request.Name },
+                { "Email", request.Email },
+                { "Department", request.Department },
+                { "Description", request.Description },
+                { "FolderURL", folderUrl }, // Stores the hyperlink to the uploaded files folder
+                { "CreatedDate", DateTimeOffset.UtcNow.ToString("o") }
+            }
+        }
+    };
+
+    var createdItem = await _graphServiceClient.Sites[_settings.SiteId]
+        .Lists[_settings.ListId]
+        .Items
+        .PostAsync(listItem);
+
+    return createdItem.Id;
+}
+```
+
+### 2. How the Clickable Folder Link Opens Files
+*   The `FolderURL` field populated in the list is the official **SharePoint Web URL** (e.g. `https://yourcompany.sharepoint.com/sites/yoursite/RequestAttachments/5d5a7d8e-c90a-41e9-9a2c-d6a5d4f3b2c1`).
+*   When administrators or team members view the SharePoint List inside their web browser, they can click on the `FolderURL` hyperlink. 
+*   SharePoint natively redirects their browser window directly into the Document Library interface, showing the exact folder containing the user's uploaded attachment files.
+
+---
+
+## ⚠️ Section 7: Key Vault Transition (Local vs. Production Secrets)
+
+Storing client secrets in text config files poses a high security risk. We have implemented a secure pipeline that automatically transitions between local config and Azure Key Vault in production.
+
+### Detailed Migration Workflow:
+
+```text
+[ local.settings.json ]
+  "SharePoint__ClientSecret"
+         │
+         ├──► (Local Dev): Program.cs binds and uses Client Secret directly.
+         │
+[ Azure Key Vault ]
+  "SharePoint--ClientSecret" (Secure Vault)
+         │
+         ├──► (Production): Set "AzureAd__KeyVaultUrl" environment variable.
+         └──► Program.cs detects setting, fetches secret via Managed Identity, and overrides value.
+```
+
+1.  **Configure Azure Key Vault**:
+    Deploy a Key Vault in your subscription and add a secret named `SharePoint--ClientSecret`.
+2.  **Managed Identity access**:
+    Enable System-Assigned Managed Identity on the Azure Function App, and assign a Key Vault access policy granting the Function Identity `Get` permissions on Secrets.
+3.  **Application Settings Configuration**:
+    In your Azure Function settings, add:
+    *   `AzureAd__KeyVaultUrl` = `https://<YOUR_VAULT_NAME>.vault.azure.net/`
+    *   Leave `SharePoint__ClientSecret` **empty or deleted** in your Azure App settings.
+4.  **Runtime Retrieval Logic**:
+    At startup, `Program.cs` sees that `clientSecret` is empty but a Key Vault URL is supplied, calling:
+    ```csharp
+    var secretClient = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+    KeyVaultSecret secret = secretClient.GetSecret("SharePoint--ClientSecret");
+    clientSecret = secret.Value;
+    ```
+    This injects the credential securely into the singleton client without storing credentials in files.
